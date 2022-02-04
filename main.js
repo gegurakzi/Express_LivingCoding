@@ -4,7 +4,12 @@ var template = require('./lib/template.js');
 var path = require('path');
 var sanitizeHtml = require('sanitize-html');
 var qs = require('querystring');
-const app = express();
+var bodyParser = require('body-parser');
+var compression = require('compression');
+
+var app = express();
+app.use(bodyParser.urlencoded({extended: false}));
+app.use(compression());
 
 app.get('/', (req, res) => {
   fs.readdir('./data', function(error, filelist){
@@ -63,20 +68,14 @@ app.get('/create', (req, res) => {
 });
 
 app.post('/create_process', (req, res) => {
-  var body = '';
-      req.on('data', function(data){
-          body = body + data;
-      });
-      req.on('end', function(){
-          var post = qs.parse(body);
-          var title = post.title;
-          var description = post.description;
-          fs.writeFile(`data/${title}`, description, 'utf8', function(err){
-            res.writeHead(302, {Location: `/page/${title}`});
-            res.send();
-          })
-      });
-})
+  var post = req.body;
+  var title = post.title;
+  var description = post.description;
+  fs.writeFile(`data/${title}`, description, 'utf8', function(err){
+    res.writeHead(302, {Location: `/page/${title}`});
+    res.send();
+  });
+});
 
 app.get('/update/:updateId', (req, res) => {
   fs.readdir('./data', function(error, filelist){
@@ -105,38 +104,26 @@ app.get('/update/:updateId', (req, res) => {
 });
 
 app.post('/update_process', (req, res) => {
-  var body = '';
-  req.on('data', function(data){
-      body = body + data;
-  });
-  req.on('end', function(){
-      var post = qs.parse(body);
-      var id = post.id;
-      var title = post.title;
-      var description = post.description;
-      fs.rename(`data/${id}`, `data/${title}`, function(error){
-        fs.writeFile(`data/${title}`, description, 'utf8', function(err){
-          res.writeHead(302, {Location: `/?id=${title}`});
-          res.send();
-        })
-      });
+  var post = req.body;
+  var id = post.id;
+  var title = post.title;
+  var description = post.description;
+  fs.rename(`data/${id}`, `data/${title}`, function(error){
+    fs.writeFile(`data/${title}`, description, 'utf8', function(err){
+      res.writeHead(302, {Location: `/?id=${title}`});
+      res.send();
+    })
   });
 });
 
 app.post('/page/delete_process', (req, res) => {
-  var body = '';
-      req.on('data', function(data){
-          body = body + data;
-      });
-      req.on('end', function(){
-          var post = qs.parse(body);
-          var id = post.id;
-          var filteredId = path.parse(id).base;
-          fs.unlink(`data/${filteredId}`, function(error){
-            res.writeHead(302, {Location: `/`});
-            res.send();
-          })
-      });
+  var post = req.body;
+  var id = post.id;
+  var filteredId = path.parse(id).base;
+  fs.unlink(`data/${filteredId}`, function(error){
+    res.writeHead(302, {Location: `/`});
+    res.send();
+  });
 });
 
 app.listen(3000, () => console.log('Example app listening on port 3000'));
